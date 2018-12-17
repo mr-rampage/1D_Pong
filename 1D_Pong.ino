@@ -6,6 +6,12 @@
 #define BALL_DELAY_REDUCTION 0.75
 #define MIN_BALL_DELAY 5
 
+#define PLAYER_1 4
+#define PLAYER_2 5
+
+#define TO_PLAYER_1 255
+#define TO_PLAYER_2 1
+
 volatile byte ballLocation = 0;
 volatile byte ballDirection = 1;
 volatile float ballDelay = 250;
@@ -13,19 +19,40 @@ volatile float ballDelay = 250;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LED_DIN,  NEO_GRB + NEO_KHZ800);
 
 void setup() {
-  ballLocation = NUMPIXELS / 2;
+  initializeGameState();
+  
+  pinMode(PLAYER_1, INPUT);
+  digitalWrite(PLAYER_1, HIGH);
+
+  pinMode(PLAYER_2, INPUT);
+  digitalWrite(PLAYER_2, HIGH);
+  
   strip.begin();
 }
 
 void loop() {
-  runGame();
+  if (ballLocation < NUMPIXELS && ballLocation >= 0) {
+    runGame();
+  } else {
+    fill
+  }
+
+  if (digitalRead(PLAYER_1) == LOW && digitalRead(PLAYER_2) == LOW) {
+    initializeGameState();
+  }
+}
+
+void initializeGameState() {
+  ballLocation = NUMPIXELS / 2;
+  ballDirection = 1;
+  ballDelay = 250;
 }
 
 void runGame() {
   clearStrip();
   updateGameState();
   renderGameState();
-  delay(ballDelay);  
+  delay(ballDelay);
 }
 
 void clearStrip() {
@@ -49,12 +76,13 @@ void updateGameState() {
 }
 
 void setBallDirection() {
-  if (ballLocation == NUMPIXELS - 1) {
-    ballDirection = -1;
+  if (ballDirection == TO_PLAYER_2 && ballLocation > NUMPIXELS - 4 && digitalRead(PLAYER_2) == LOW) {
+    ballDirection = TO_PLAYER_1;
   }
-  if (ballLocation == 0) {
-    ballDirection = 1;
-  }  
+
+  if (ballDirection == TO_PLAYER_1 && ballLocation < 3 && digitalRead(PLAYER_1) == LOW) {
+    ballDirection = TO_PLAYER_2;
+  }
 }
 
 void setBallLocation() {
@@ -62,7 +90,8 @@ void setBallLocation() {
 }
 
 void setBallDelay() {
-  if (ballDelay > MIN_BALL_DELAY && ((ballLocation == NUMPIXELS - 1) || (ballLocation == 0))) {
+  if ((ballDirection == TO_PLAYER_2 && ballLocation > NUMPIXELS - 4 && digitalRead(PLAYER_2) == LOW) ||
+      (ballDirection == TO_PLAYER_1 && ballLocation < 3 && digitalRead(PLAYER_1) == LOW)) {
     ballDelay = max(ballDelay * BALL_DELAY_REDUCTION, MIN_BALL_DELAY);
   }
 }
