@@ -12,7 +12,10 @@
 #define TO_PLAYER_1 255
 #define TO_PLAYER_2 1
 
-volatile boolean mode = LOW;
+#define LIGHT_MODE LOW
+#define PONG_MODE HIGH
+
+volatile boolean mode = LIGHT_MODE;
 volatile byte ballLocation = 0;
 volatile byte ballDirection = 1;
 volatile float ballDelay = 250;
@@ -42,7 +45,6 @@ void setup() {
 void loop() {
   if (mode == HIGH) {
     runGame();
-  } else {
   }
   setMode();
 }
@@ -56,16 +58,18 @@ void initializeGameState() {
 void setMode() {
   currentButtonState[0] = digitalRead(PLAYER_1);
   currentButtonState[1] = digitalRead(PLAYER_2);
-
+  
+  if (currentButtonState[0] == LOW && currentButtonState[1] == LOW) {
+    initializeGameState();
+  }
+  
   if ((currentButtonState[0] == LOW || currentButtonState[1] == LOW) && 
       (currentButtonState[0] != previousButtonState[0] ||
        currentButtonState[1] != previousButtonState[1])) {
-    if (digitalRead(PLAYER_1) == LOW && digitalRead(PLAYER_2) == LOW) {
-      initializeGameState();
-      mode = !mode;    
+    if (currentButtonState[0] == LOW && currentButtonState[1] == LOW) {
+      mode = !mode;
     }
-    
-    if (mode == LOW) {
+    if (mode == LIGHT_MODE) {
       if (digitalRead(PLAYER_1) == LOW) {
         lightBrightness = max(lightBrightness << 1, 1);
         lightStrip();
