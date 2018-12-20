@@ -26,6 +26,8 @@ volatile byte lightBrightness = 1;
 volatile boolean currentButtonState[2] = { HIGH, HIGH };
 volatile boolean previousButtonState[2] = { HIGH, HIGH };
 
+unsigned int timer[] = {0, 0};
+
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LED_DIN,  NEO_GRB + NEO_KHZ800);
 
 void setup() {
@@ -43,8 +45,14 @@ void setup() {
 }
 
 void loop() {
-  if (mode == HIGH) {
-    runGame();
+  if (mode == PONG_MODE) {
+    updateGameState();
+    timer[1] = millis();
+    if ((timer[1] - timer[0]) >= ballDelay) {
+      runGame();      
+      setBallLocation();
+      timer[0] = timer[1];
+    }
   }
   setMode();
 }
@@ -89,9 +97,7 @@ void setMode() {
 void runGame() {
   if (ballLocation < NUMPIXELS && ballLocation >= 0) {
     clearStrip();
-    updateGameState();
     renderGameState();
-    delay(ballDelay);
   }
 }
 
@@ -112,7 +118,6 @@ void renderBall(uint8_t r, uint8_t g, uint8_t b) {
 void updateGameState() {
   setBallDelay();
   setBallDirection();
-  setBallLocation();
 }
 
 void setBallDirection() {
