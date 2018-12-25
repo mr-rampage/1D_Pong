@@ -25,7 +25,6 @@ volatile byte lightBrightness = 1;
 
 volatile boolean currentButtonState[2] = { HIGH, HIGH };
 volatile boolean previousButtonState[2] = { HIGH, HIGH };
-unsigned int chance[] = {0, 0};
 unsigned int timer[] = {0, 0};
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LED_DIN,  NEO_GRB + NEO_KHZ800);
@@ -39,6 +38,8 @@ void setup() {
 
   pinMode(PLAYER_2, INPUT);
   digitalWrite(PLAYER_2, HIGH);
+
+  randomSeed(analogRead(0));
 
   Serial.begin(9600);
   strip.begin();
@@ -59,8 +60,11 @@ void loop() {
 
 void initializeGameState() {
   ballLocation = NUMPIXELS / 2;
-  ballDirection = 1;
-  chance[1] = 1;
+  if (random(0, 2) == 0) {
+    ballDirection = -1;
+  } else {
+    ballDirection = 1;
+  }
   ballDelay = 250;
 }
 
