@@ -25,7 +25,7 @@ volatile byte lightBrightness = 1;
 
 volatile boolean currentButtonState[2] = { HIGH, HIGH };
 volatile boolean previousButtonState[2] = { HIGH, HIGH };
-
+unsigned int chance[] = {0, 0};
 unsigned int timer[] = {0, 0};
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, LED_DIN,  NEO_GRB + NEO_KHZ800);
@@ -46,47 +46,38 @@ void setup() {
 
 void loop() {
   if (mode == PONG_MODE) {
-    updateGameState();
     timer[1] = millis();
     if ((timer[1] - timer[0]) >= ballDelay) {
-      runGame();      
+      renderPong();      
       setBallLocation();
       timer[0] = timer[1];
     }
+    updateGameState();
   }
-  setMode();
+  handleButtonPresses();
 }
 
 void initializeGameState() {
   ballLocation = NUMPIXELS / 2;
   ballDirection = 1;
+  chance[1] = 1;
   ballDelay = 250;
 }
 
-void setMode() {
+void handleButtonPresses() {
   currentButtonState[0] = digitalRead(PLAYER_1);
   currentButtonState[1] = digitalRead(PLAYER_2);
-  
-  if (currentButtonState[0] == LOW && currentButtonState[1] == LOW) {
-    initializeGameState();
-  }
   
   if ((currentButtonState[0] == LOW || currentButtonState[1] == LOW) && 
       (currentButtonState[0] != previousButtonState[0] ||
        currentButtonState[1] != previousButtonState[1])) {
     if (currentButtonState[0] == LOW && currentButtonState[1] == LOW) {
-      mode = !mode;
+      changeMode();
+      initializeGameState();
     }
-    if (mode == LIGHT_MODE) {
-      if (digitalRead(PLAYER_1) == LOW) {
-        lightBrightness = max(lightBrightness << 1, 1);
-        lightStrip();
-      }
     
-      if (digitalRead(PLAYER_2) == LOW) {
-        lightColour = max(lightColour << 1, 1);
-        lightStrip();
-      }
+    if (mode == LIGHT_MODE) {
+      handleLightMode();
     }
   }
 
@@ -94,11 +85,33 @@ void setMode() {
   previousButtonState[1] = currentButtonState[1];
 }
 
-void runGame() {
+void changeMode() {
+  if ((mode == PONG_MODE && ballLocation >= NUMPIXELS) ||
+      (mode == LIGHT_MODE)) {
+    mode = !mode;
+    if (mode == PONG_MODE) {
+      delay(250);
+    }
+  }
+}
+
+void handleLightMode() {
+  if (digitalRead(PLAYER_1) == LOW) {
+    lightBrightness = max(lightBrightness << 1, 1);
+    lightStrip();
+  }
+    
+  if (digitalRead(PLAYER_2) == LOW) {
+    lightColour = max(lightColour << 1, 1);
+    lightStrip();
+  }
+}
+
+void renderPong() {
   if (ballLocation < NUMPIXELS && ballLocation >= 0) {
     clearStrip();
-    renderGameState();
   }
+  renderBall(255, 255, 255);
 }
 
 void clearStrip() {
@@ -106,13 +119,23 @@ void clearStrip() {
   strip.show();
 }
 
-void renderGameState() {
-  renderBall(255, 255, 255);
+void renderBall(uint8_t r, uint8_t g, uint8_t b) {
+  if (ballLocation == 255) {
+    blinkPixelColor(0, 255, 0, 0);
+  } else if (ballLocation == NUMPIXELS) {
+    blinkPixelColor(NUMPIXELS - 1, 255, 0, 0);
+  } else {
+    setPixelColor(ballLocation, r, g, b);
+  }
   strip.show();
 }
 
-void renderBall(uint8_t r, uint8_t g, uint8_t b) {
-  setPixelColor(ballLocation, r, g, b);
+void blinkPixelColor(uint16_t n, uint8_t r, uint8_t g, uint8_t b) {
+  if (strip.getPixelColor(n) == 0) {
+    setPixelColor(n, r, g, b);
+  } else {
+    setPixelColor(n, 0, 0, 0);
+  }
 }
 
 void updateGameState() {
@@ -123,10 +146,10 @@ void updateGameState() {
 void setBallDirection() {
   if (ballDirection == TO_PLAYER_2 && ballLocation > NUMPIXELS - 4 && digitalRead(PLAYER_2) == LOW) {
     ballDirection = TO_PLAYER_1;
-  }
-
-  if (ballDirection == TO_PLAYER_1 && ballLocation < 3 && digitalRead(PLAYER_1) == LOW) {
+  } else if (ballDirection == TO_PLAYER_1 && ballLocation < 3 && digitalRead(PLAYER_1) == LOW) {
     ballDirection = TO_PLAYER_2;
+  } else if (ballLocation >= NUMPIXELS) {
+    ballDirection = 0;
   }
 }
 
@@ -144,11 +167,11 @@ void setBallDelay() {
 void createPongBoard() {
   for(int i=0;i<NUMPIXELS;i++){  
     if ((i >= 1 && i <= 2) || (i <= NUMPIXELS - 2 && i >= NUMPIXELS - 3)) {
-      setPixelColor(i, 1, 1, 0);
+      setPixelColor(i, 128, 128, 0);
     } else if (i == 0 || i == NUMPIXELS - 1) {
-      setPixelColor(i, 0, 1, 0); 
+      setPixelColor(i, 0, 128, 0); 
     } else {
-      setPixelColor(i, 1, 0, 0);
+      setPixelColor(i, 0, 0, 128);
     }
   }
 }
